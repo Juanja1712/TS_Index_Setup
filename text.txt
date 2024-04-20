@@ -1,0 +1,111 @@
+1. instalar nestjs/cli
+    npm i -g @nestjs/cli
+
+2. instalar yarn (opcional)
+    npm i -g yarn
+
+3. instalar nvm
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+    nvm --v
+    nvm install <version>
+    nvm use <version>
+
+4. Correr el proyecto (se crea aut carpeta dist para los transpiladores)
+    npm run build
+
+5. pararse en la base de datos
+    cd src
+
+6. Generar un module
+    nest generate module
+
+7. Como es un modulo le llamamos Persistence
+
+8. Borrar el controller y service y un archivo mas que no recuerdo xd y borrar sus imports en app.module
+
+9. crear una carpeta db-config.ts para la coneccion
+
+10. Instalar Nestjs/config
+    npm i --save @nestjs/config
+
+11. Crear en db-config
+    import { registerAs } from "@nestjs/config";
+    export default registerAs('dbConfig', () => {
+        const dbConfig = {
+            db: {
+                connection: process.env.DB_CONNECTION,
+                host: process.env.DB_HOST,
+                name: process.env.DB_NAME,
+                user: process.env.DB_USER,
+                password: process.env.BD_PASSWORD,
+            },
+            env: process.env.NODE_ENV || 'local',
+        };
+        return dbConfig;
+    });
+
+12. ir al app.module y configurar asi
+
+    import { Module } from '@nestjs/common';
+    import { PersistanceModule } from './persistance/persistance.module';
+    import { ConfigModule } from "@nestjs/config";
+    import dbConfig from "./persistance/db-config";
+
+    @Module({
+    imports: [
+        ConfigModule.forRoot({
+        envFilePath: '.env',
+        load: [dbConfig],
+        isGlobal: true,
+        }),
+        PersistanceModule,
+    ],
+    controllers: [],
+    providers: [],
+    })
+    export class AppModule {}
+
+13. Crear un archivo .env y configurar 
+
+DB_NAME = library
+DB_CONNECTION = mongodb://
+DB_HOST = localhost:27017
+DB_USER = lbeltran
+DB_PASWORD = library
+
+14. indicamos en el persistance.module 
+
+15. Instalar mongoose y mongoose de nestjs
+    npm install --save @nestjs/mongoose mongoose
+
+16. Configurar la carpeta persistance.module
+    import { Global, Module } from '@nestjs/common';
+    import { MongooseModule } from "@nestjs/mongoose";
+    import dbConfig from "./db-config";
+    import { ConfigType } from "@nestjs/config";
+
+    @Global()
+    @Module({
+        imports: [
+            MongooseModule.forRootAsync({
+                useFactory: (configService: ConfigType<typeof dbConfig>) => {
+                    const { db, env } = configService;
+                    const uriDb =
+                        env === 'local'
+                            ? `${db.connection}${db.host}/${db.name}`
+                            : `mongodb+srv://${db.user}:${db.password}@cluster0.mongodb.net/${db.name}?retryWrites=true&w=majority`;
+                    return {
+                        uri: uriDb
+                    };
+                },
+                inject: [dbConfig.KEY]
+            }),
+        ]
+    })
+    export class PersistanceModule {}
+
+17. Conectar a la base de datos
+    yarn start:dev
+
+
+
